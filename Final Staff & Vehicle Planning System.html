@@ -1,0 +1,2325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AYT International WLL (Staff & Vehicle Planning System)</title>
+    <script src="https://cdn.tailwindcss.com "></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css " rel="stylesheet">
+    <!-- SheetJS for Excel reading -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js "></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300 ;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background: #f1f5f9; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        .table-row:hover {
+            transform: scale(1.01);
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 10;
+            position: relative;
+        }
+        .status-badge {
+            transition: all 0.3s ease;
+        }
+        .status-badge:hover {
+            transform: scale(1.05);
+        }
+        .input-field {
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+        .input-field:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            outline: none;
+        }
+        .tab-active {
+            border-bottom: 3px solid #3b82f6;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.3;
+        }
+        .driver-yes { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .driver-no { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+        .driver-self { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+
+        .staff-tag {
+            display: inline-flex;
+            align-items: center;
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            margin: 2px;
+            border: 1px solid #c7d2fe;
+        }
+        .staff-tag button {
+            margin-left: 4px;
+            color: #3730a3;
+        }
+        .staff-tag button:hover {
+            color: #dc2626;
+        }
+        .add-staff-btn {
+            background: #f3f4f6;
+            border: 2px dashed #d1d5db;
+            color: #6b7280;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .add-staff-btn:hover {
+            background: #e5e7eb;
+            border-color: #9ca3af;
+            color: #374151;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 12px;
+            width: 400px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .driver-override {
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+            color: #92400e;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 4px;
+            cursor: pointer;
+        }
+        .driver-override.active {
+            background: #fde68a;
+            border-color: #f59e0b;
+        }
+        
+        /* History View Styles */
+        .history-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid #3b82f6;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+        }
+        .history-card:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .filter-chip {
+            display: inline-flex;
+            align-items: center;
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            margin: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-chip:hover {
+            background: #c7d2fe;
+        }
+        .filter-chip.active {
+            background: #3b82f6;
+            color: white;
+        }
+        .date-range-input {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        .date-range-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+        }
+        .export-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .export-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-box {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #3b82f6;
+        }
+        .timeline-item {
+            position: relative;
+            padding-left: 24px;
+            padding-bottom: 24px;
+            border-left: 2px solid #e2e8f0;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #3b82f6;
+        }
+        .timeline-item:last-child {
+            border-left: 2px solid transparent;
+        }
+        
+        /* Excel Upload Styles */
+        .excel-upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            background: #f8fafc;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .excel-upload-area:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+        .excel-upload-area.dragover {
+            border-color: #3b82f6;
+            background: #dbeafe;
+            transform: scale(1.02);
+        }
+        .file-input-hidden {
+            display: none;
+        }
+        .upload-btn {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+        .upload-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+    </style>
+<base target="_blank">
+</head>
+<body class="min-h-screen text-slate-800">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-blue-500 text-white p-2 rounded-lg">
+                        <i class="fas fa-truck-moving text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-800">AYT International WLL</h1>
+                        <p class="text-xs text-slate-500">Staff & Vehicle Planning System</p>
+                    </div>
+                </div>
+                <div class="flex space-x-6 text-sm font-medium">
+                    <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-active pb-4 pt-4 px-2 transition-colors hover:text-blue-500">
+                        <i class="fas fa-chart-line mr-2"></i>Dashboard
+                    </button>
+                    <button onclick="switchTab('planning')" id="tab-planning" class="pb-4 pt-4 px-2 text-slate-500 transition-colors hover:text-blue-500">
+                        <i class="fas fa-calendar-alt mr-2"></i>Daily Planning
+                    </button>
+                    <button onclick="switchTab('history')" id="tab-history" class="pb-4 pt-4 px-2 text-slate-500 transition-colors hover:text-blue-500">
+                        <i class="fas fa-history mr-2"></i>History & Reports
+                    </button>
+                    <button onclick="switchTab('master')" id="tab-master" class="pb-4 pt-4 px-2 text-slate-500 transition-colors hover:text-blue-500">
+                        <i class="fas fa-database mr-2"></i>Master Data
+                    </button>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="saveAllData()" class="text-xs bg-green-100 text-green-800 px-3 py-1 rounded-full font-semibold hover:bg-green-200 transition-colors">
+                        <i class="fas fa-save mr-1"></i>Save
+                    </button>
+                    <span class="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-semibold">
+                        <i class="fas fa-circle text-xs mr-1 animate-pulse"></i>Live System
+                    </span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- DASHBOARD TAB -->
+        <div id="view-dashboard" class="space-y-6">
+            <!-- Metrics Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="metric-card rounded-2xl p-6 text-white shadow-xl">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-blue-100 text-sm font-medium mb-1">Total Sites Today</p>
+                            <h3 class="text-4xl font-bold" id="metric-total-sites">0</h3>
+                        </div>
+                        <div class="bg-white/20 p-3 rounded-lg">
+                            <i class="fas fa-map-marker-alt text-2xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-sm text-blue-100">
+                        <span id="metric-date-display"></span>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 shadow-lg border-l-4 border-red-500">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-slate-500 text-sm font-medium mb-1">Drivers Required</p>
+                            <h3 class="text-4xl font-bold text-slate-800" id="metric-drivers-needed">0</h3>
+                        </div>
+                        <div class="bg-red-100 text-red-600 p-3 rounded-lg">
+                            <i class="fas fa-user-tie text-2xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-sm text-red-600 font-medium">
+                        <span id="metric-driver-pct">0%</span> of total sites
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 shadow-lg border-l-4 border-green-500">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-slate-500 text-sm font-medium mb-1">Self Drive</p>
+                            <h3 class="text-4xl font-bold text-slate-800" id="metric-self-drive">0</h3>
+                        </div>
+                        <div class="bg-green-100 text-green-600 p-3 rounded-lg">
+                            <i class="fas fa-car text-2xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-sm text-green-600 font-medium">
+                        Licensed staff available
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 shadow-lg border-l-4 border-blue-500">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-slate-500 text-sm font-medium mb-1">Available Drivers</p>
+                            <h3 class="text-4xl font-bold text-slate-800" id="metric-available-drivers">0</h3>
+                        </div>
+                        <div class="bg-blue-100 text-blue-600 p-3 rounded-lg">
+                            <i class="fas fa-id-card text-2xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-sm text-blue-600 font-medium">
+                        Ready for assignment
+                    </div>
+                </div>
+            </div>
+
+            <!-- Engineers & Technicians at Site -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-xl">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-indigo-100 text-sm font-medium mb-1">Engineers at Site</p>
+                            <h3 class="text-5xl font-bold" id="metric-engineers-ratio">0/0</h3>
+                        </div>
+                        <div class="bg-white/20 p-3 rounded-lg">
+                            <i class="fas fa-hard-hat text-2xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-sm text-indigo-100">
+                        <span id="metric-engineers-detail">0 at site, 0 available</span>
+                    </div>
+                </div>
+
+                <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-6 text-white shadow-xl">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-emerald-100 text-sm font-medium mb-1">Technicians at Site</p>
+                            <h3 class="text-5xl font-bold" id="metric-technicians-ratio">0/0</h3>
+                        </div>
+                        <div class="bg-white/20 p-3 rounded-lg">
+                            <i class="fas fa-tools text-2xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-sm text-emerald-100">
+                        <span id="metric-technicians-detail">0 at site, 0 available</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions & Status -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 glass-panel rounded-2xl p-6 shadow-lg">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-bold text-slate-800">
+                            <i class="fas fa-exclamation-triangle text-amber-500 mr-2"></i>
+                            License Expiry Alerts
+                        </h3>
+                        <span class="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full">Next 30 Days</span>
+                    </div>
+                    <div id="expiry-alerts" class="space-y-3">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+
+                <div class="glass-panel rounded-2xl p-6 shadow-lg">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4">
+                        <i class="fas fa-bolt text-amber-500 mr-2"></i>
+                        Quick Actions
+                    </h3>
+                    <div class="space-y-3">
+                        <button onclick="switchTab('planning'); addNewPlan();" class="w-full bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-xl transition-all transform hover:scale-[1.02] flex items-center justify-between group">
+                            <span class="font-medium">Add New Site Plan</span>
+                            <i class="fas fa-plus group-hover:rotate-90 transition-transform"></i>
+                        </button>
+                        <button onclick="switchTab('history')" class="w-full bg-white border-2 border-slate-200 hover:border-purple-500 hover:text-purple-600 text-slate-700 p-4 rounded-xl transition-all flex items-center justify-between group">
+                            <span class="font-medium">View Work History</span>
+                            <i class="fas fa-history group-hover:scale-110 transition-transform"></i>
+                        </button>
+                        <button onclick="switchTab('master')" class="w-full bg-white border-2 border-slate-200 hover:border-blue-500 hover:text-blue-500 text-slate-700 p-4 rounded-xl transition-all flex items-center justify-between group">
+                            <span class="font-medium">Update Staff Data</span>
+                            <i class="fas fa-users group-hover:scale-110 transition-transform"></i>
+                        </button>
+                        <button onclick="exportData()" class="w-full bg-white border-2 border-slate-200 hover:border-green-500 hover:text-green-600 text-slate-700 p-4 rounded-xl transition-all flex items-center justify-between group">
+                            <span class="font-medium">Export to Excel</span>
+                            <i class="fas fa-file-excel group-hover:scale-110 transition-transform"></i>
+                        </button>
+                        <button onclick="clearAllData()" class="w-full bg-white border-2 border-slate-200 hover:border-red-500 hover:text-red-600 text-slate-700 p-4 rounded-xl transition-all flex items-center justify-between group">
+                            <span class="font-medium">Reset All Data</span>
+                            <i class="fas fa-trash group-hover:scale-110 transition-transform"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Today's Schedule Preview -->
+            <div class="glass-panel rounded-2xl p-6 shadow-lg">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-slate-800">Today's Schedule Overview</h3>
+                    <button onclick="switchTab('planning')" class="text-blue-500 hover:text-blue-700 text-sm font-medium">
+                        View Full Plan <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="text-xs text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                                <th class="pb-3 font-semibold">Site</th>
+                                <th class="pb-3 font-semibold">Time</th>
+                                <th class="pb-3 font-semibold">Work Type</th>
+                                <th class="pb-3 font-semibold">Team</th>
+                                <th class="pb-3 font-semibold">Vehicle</th>
+                                <th class="pb-3 font-semibold">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboard-schedule-body" class="text-sm">
+                            <!-- Dynamically populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- DAILY PLANNING TAB -->
+        <div id="view-planning" class="hidden space-y-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">Daily Planning</h2>
+                    <p class="text-slate-500 mt-1">Schedule sites and auto-allocate drivers based on license verification</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="archiveCurrentPlans()" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-xl font-medium transition-all shadow-lg flex items-center gap-2">
+                        <i class="fas fa-archive"></i> Archive Plans
+                    </button>
+                    <button onclick="addNewPlan()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-medium transition-all transform hover:scale-105 shadow-lg flex items-center gap-2">
+                        <i class="fas fa-plus"></i> Add Site Plan
+                    </button>
+                </div>
+            </div>
+
+            <!-- Archive Info Banner -->
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-info-circle text-blue-500 text-xl"></i>
+                    <div>
+                        <p class="font-medium text-blue-900">Historical Data Storage Active</p>
+                        <p class="text-sm text-blue-700">All plans are automatically archived by date. Access 5+ years of history in the History tab.</p>
+                    </div>
+                </div>
+                <span class="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-medium" id="archive-count">0 records archived</span>
+            </div>
+
+            <div class="glass-panel rounded-2xl shadow-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left" id="planning-table">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr class="text-xs text-slate-500 uppercase tracking-wider">
+                                <th class="p-4 font-semibold">Date</th>
+                                <th class="p-4 font-semibold">Site Name</th>
+                                <th class="p-4 font-semibold">Work Type</th>
+                                <th class="p-4 font-semibold">Time</th>
+                                <th class="p-4 font-semibold">Engineers</th>
+                                <th class="p-4 font-semibold">Technicians</th>
+                                <th class="p-4 font-semibold bg-blue-50">Vehicle Needed</th>
+                                <th class="p-4 font-semibold bg-slate-100">Driver Required</th>
+                                <th class="p-4 font-semibold bg-green-50">Driver Name</th>
+                                <th class="p-4 font-semibold">Remarks</th>
+                                <th class="p-4 font-semibold text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="planning-body" class="text-sm divide-y divide-slate-100">
+                            <!-- Dynamically populated -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="empty-planning" class="hidden p-12 text-center text-slate-400">
+                    <i class="fas fa-clipboard-list text-5xl mb-4 opacity-30"></i>
+                    <p>No plans added yet. Click "Add Site Plan" to start.</p>
+                </div>
+            </div>
+
+            <!-- Formula Explanation -->
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                <h4 class="font-bold text-blue-900 mb-3 flex items-center">
+                    <i class="fas fa-magic mr-2"></i>
+                    How Auto-Allocation Works
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800">
+                    <div class="flex items-start gap-3">
+                        <div class="bg-blue-200 text-blue-800 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0">1</div>
+                        <p>System checks if any team member has valid license for required vehicle type</p>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="bg-blue-200 text-blue-800 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0">2</div>
+                        <p>Verifies license has not expired and follows role-based vehicle permissions</p>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="bg-blue-200 text-blue-800 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0">3</div>
+                        <p>If no match found, auto-assigns available driver (no repeats on same day)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HISTORY & REPORTS TAB -->
+        <div id="view-history" class="hidden space-y-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">Work History & Reports</h2>
+                    <p class="text-slate-500 mt-1">Access complete historical data for any staff member across all dates</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="exportFullHistory()" class="export-btn">
+                        <i class="fas fa-file-export"></i> Export Full History
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters Section -->
+            <div class="glass-panel rounded-2xl p-6 shadow-lg">
+                <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <i class="fas fa-filter text-blue-500"></i>
+                    Search & Filter
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Staff Member</label>
+                        <select id="history-staff-filter" class="input-field w-full px-3 py-2 rounded-lg border border-slate-300" onchange="applyHistoryFilters()">
+                            <option value="">All Staff</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Role</label>
+                        <select id="history-role-filter" class="input-field w-full px-3 py-2 rounded-lg border border-slate-300" onchange="applyHistoryFilters()">
+                            <option value="">All Roles</option>
+                            <option value="Engineer">Engineer</option>
+                            <option value="Technician">Technician</option>
+                            <option value="Driver">Driver</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">From Date</label>
+                        <input type="date" id="history-from-date" class="date-range-input w-full" onchange="applyHistoryFilters()">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">To Date</label>
+                        <input type="date" id="history-to-date" class="date-range-input w-full" onchange="applyHistoryFilters()">
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-2 items-center">
+                    <span class="text-sm text-slate-500 font-medium">Quick Filters:</span>
+                    <button onclick="setDateRange('today')" class="filter-chip">Today</button>
+                    <button onclick="setDateRange('week')" class="filter-chip">This Week</button>
+                    <button onclick="setDateRange('month')" class="filter-chip">This Month</button>
+                    <button onclick="setDateRange('year')" class="filter-chip">This Year</button>
+                    <button onclick="setDateRange('last30')" class="filter-chip">Last 30 Days</button>
+                    <button onclick="setDateRange('last90')" class="filter-chip">Last 90 Days</button>
+                    <button onclick="clearFilters()" class="filter-chip bg-red-50 text-red-600 hover:bg-red-100">
+                        <i class="fas fa-times mr-1"></i>Clear All
+                    </button>
+                </div>
+            </div>
+
+            <!-- Statistics Summary -->
+            <div class="stats-grid" id="history-stats">
+                <div class="stat-box">
+                    <div class="stat-number" id="stat-total-days">0</div>
+                    <div class="text-sm text-slate-600 mt-1">Total Days Worked</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="stat-total-sites">0</div>
+                    <div class="text-sm text-slate-600 mt-1">Total Sites Visited</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="stat-as-engineer">0</div>
+                    <div class="text-sm text-slate-600 mt-1">Times as Engineer</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="stat-as-technician">0</div>
+                    <div class="text-sm text-slate-600 mt-1">Times as Technician</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="stat-as-driver">0</div>
+                    <div class="text-sm text-slate-600 mt-1">Times as Driver</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="stat-date-range">-</div>
+                    <div class="text-sm text-slate-600 mt-1">Date Range</div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="glass-panel rounded-2xl p-6 shadow-lg">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-slate-800">Work History Records</h3>
+                    <div class="flex gap-2">
+                        <button onclick="toggleView('timeline')" id="btn-timeline" class="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium">
+                            <i class="fas fa-stream mr-2"></i>Timeline
+                        </button>
+                        <button onclick="toggleView('table')" id="btn-table" class="px-4 py-2 rounded-lg bg-slate-200 text-slate-700 text-sm font-medium">
+                            <i class="fas fa-table mr-2"></i>Table
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Timeline View -->
+                <div id="history-timeline-view" class="space-y-4">
+                    <div id="timeline-container" class="space-y-6">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+
+                <!-- Table View -->
+                <div id="history-table-view" class="hidden overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="text-xs text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                                <th class="pb-3 font-semibold">Date</th>
+                                <th class="pb-3 font-semibold">Site</th>
+                                <th class="pb-3 font-semibold">Work Type</th>
+                                <th class="pb-3 font-semibold">Role</th>
+                                <th class="pb-3 font-semibold">Team Members</th>
+                                <th class="pb-3 font-semibold">Vehicle</th>
+                                <th class="pb-3 font-semibold">Driver</th>
+                                <th class="pb-3 font-semibold">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body" class="text-sm">
+                            <!-- Dynamically populated -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="empty-history" class="hidden p-12 text-center text-slate-400">
+                    <i class="fas fa-search text-5xl mb-4 opacity-30"></i>
+                    <p>No records found for the selected filters.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- MASTER DATA TAB -->
+        <div id="view-master" class="hidden space-y-6">
+
+            <!-- Excel Upload Section -->
+            <div class="glass-panel rounded-2xl p-6 shadow-lg">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fas fa-file-excel text-green-600"></i>
+                            Bulk Upload Staff Data
+                        </h3>
+                        <p class="text-sm text-slate-500 mt-1">Upload Excel (.xlsx, .xls) or CSV file to automatically populate staff master data</p>
+                    </div>
+                </div>
+                
+                <div class="excel-upload-area" id="excel-upload-area" onclick="document.getElementById('excel-file-input').click()">
+                    <input type="file" id="excel-file-input" class="file-input-hidden" accept=".xlsx,.xls,.csv" onchange="handleExcelUpload(event)">
+                    <div class="text-center">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-slate-400 mb-3"></i>
+                        <p class="text-slate-600 font-medium mb-1">Click to upload or drag and drop</p>
+                        <p class="text-sm text-slate-400">Supports .xlsx, .xls, .csv files</p>
+                        <p class="text-xs text-slate-400 mt-2">Expected columns: ID, Name, Role, Has License, Vehicle Type, License Expiry, Available</p>
+                    </div>
+                </div>
+                
+                <div id="upload-preview" class="hidden mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-check-circle text-green-500 text-xl"></i>
+                            <div>
+                                <p class="font-medium text-slate-800" id="upload-filename">filename.xlsx</p>
+                                <p class="text-sm text-slate-600" id="upload-count">0 records found</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="cancelExcelUpload()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-sm font-medium transition-colors">
+                                Cancel
+                            </button>
+                            <button onclick="confirmExcelUpload()" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors">
+                                <i class="fas fa-check mr-1"></i>Confirm Import
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Staff Master -->
+            <div class="glass-panel rounded-2xl p-6 shadow-lg">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fas fa-users text-blue-500"></i>
+                            Master Staff
+                        </h3>
+                        <p class="text-sm text-slate-500 mt-1">Manage staff, roles, licenses, and vehicle authorizations</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="addNewStaff()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Add Staff
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500">
+                            <tr>
+                                <th class="p-3 font-semibold">ID</th>
+                                <th class="p-3 font-semibold">Name</th>
+                                <th class="p-3 font-semibold">Role</th>
+                                <th class="p-3 font-semibold">Has License</th>
+                                <th class="p-3 font-semibold">Vehicle Type</th>
+                                <th class="p-3 font-semibold">License Expiry</th>
+                                <th class="p-3 font-semibold">Available</th>
+                                <th class="p-3 font-semibold text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staff-body" class="divide-y divide-slate-100">
+                            <!-- Dynamically populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Work Type Master -->
+            <div class="glass-panel rounded-2xl p-6 shadow-lg">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fas fa-briefcase text-blue-500"></i>
+                            Work Type Master
+                        </h3>
+                        <p class="text-sm text-slate-500 mt-1">Define vehicle requirements for each work type</p>
+                    </div>
+                    <button onclick="addNewWorkType()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Add Work Type
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm max-w-2xl">
+                        <thead class="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500">
+                            <tr>
+                                <th class="p-3 font-semibold">Work Type</th>
+                                <th class="p-3 font-semibold">Vehicle Required</th>
+                                <th class="p-3 font-semibold text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="worktype-body" class="divide-y divide-slate-100">
+                            <!-- Dynamically populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800 text-white py-6 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <h3 class="text-lg font-bold text-blue-400">AYT International WLL</h3>
+                    <p class="text-sm text-slate-400">Staff & Vehicle Planning System</p>
+                </div>
+                <div class="text-center md:text-right">
+                    <p class="text-sm text-slate-300">
+                        <i class="fas fa-code text-blue-400 mr-2"></i>
+                        Developed by <span class="font-semibold text-white">Junaid Mohammad</span>
+                    </p>
+                    <p class="text-xs text-slate-500 mt-1">© 2026 All Rights Reserved</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Staff Selection Modal -->
+    <div id="staffModal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-slate-800" id="modalTitle">Select Staff</h3>
+                <button onclick="closeStaffModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="mb-4">
+                <input type="text" id="staffSearch" placeholder="Search..." 
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    onkeyup="filterStaffModal()">
+            </div>
+            <div id="staffModalList" class="max-h-60 overflow-y-auto space-y-2">
+                <!-- Staff list populated here -->
+            </div>
+            <div class="mt-4 pt-4 border-t border-slate-200 flex justify-end">
+                <button onclick="closeStaffModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-slate-800 text-white px-6 py-3 rounded-lg shadow-2xl transform translate-y-20 transition-transform duration-300 z-50 flex items-center gap-3">
+        <i class="fas fa-check-circle text-green-400"></i>
+        <span id="toast-message">Operation successful</span>
+    </div>
+
+    <script>
+        // Data Store with localStorage persistence
+        const defaultStaff = [
+            { id: 1, name: 'Ravi', role: 'Engineer', hasLicense: 'Yes', vehicleType: 'Pickup', licenseExpiry: '2027-12-31', available: 'Yes' },
+            { id: 2, name: 'Kiran', role: 'Engineer', hasLicense: 'No', vehicleType: '-', licenseExpiry: '-', available: 'Yes' },
+            { id: 3, name: 'Manoj', role: 'Technician', hasLicense: 'Yes', vehicleType: 'Bike', licenseExpiry: '2026-06-30', available: 'Yes' },
+            { id: 4, name: 'Suresh', role: 'Technician', hasLicense: 'No', vehicleType: '-', licenseExpiry: '-', available: 'Yes' },
+            { id: 5, name: 'Arjun', role: 'Driver', hasLicense: 'Yes', vehicleType: 'Pickup', licenseExpiry: '2028-12-31', available: 'Yes' },
+            { id: 6, name: 'Ramesh', role: 'Driver', hasLicense: 'Yes', vehicleType: 'Car', licenseExpiry: '2026-12-31', available: 'Yes' }
+        ];
+
+        const defaultWorkTypes = [
+            { type: 'Office', vehicle: 'Car' },
+            { type: 'Hospital Visit', vehicle: 'Car' },
+            { type: 'Site Visit', vehicle: 'Bike' },
+            { type: 'Site Work', vehicle: 'Pickup' }
+        ];
+
+        const defaultPlans = [
+            { id: 1, date: new Date().toISOString().split('T')[0], siteName: 'Site A', workType: 'Site Work', time: '09:00', engineers: ['Ravi'], technicians: ['Suresh'], remarks: '', driverOverride: false, assignedDriver: null },
+            { id: 2, date: new Date().toISOString().split('T')[0], siteName: 'Site B', workType: 'Site Visit', time: '10:30', engineers: ['Kiran'], technicians: ['Manoj'], remarks: '', driverOverride: false, assignedDriver: null },
+            { id: 3, date: new Date().toISOString().split('T')[0], siteName: 'Site C', workType: 'Office', time: '14:00', engineers: ['Kiran'], technicians: ['Suresh'], remarks: '', driverOverride: false, assignedDriver: null },
+            { id: 4, date: new Date().toISOString().split('T')[0], siteName: 'Site D', workType: 'Site Work', time: '16:00', engineers: ['Kiran'], technicians: ['Suresh'], remarks: '', driverOverride: false, assignedDriver: null }
+        ];
+
+        let staff = [];
+        let workTypes = [];
+        let plans = [];
+        let currentEditingPlanId = null;
+        let currentEditingField = null;
+        let archivedPlans = []; // In-memory cache of archived plans
+        let db = null; // IndexedDB instance
+        let pendingExcelData = []; // Temporary storage for Excel upload
+
+        // Initialize IndexedDB for historical data storage
+        function initIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('AYTPlanningDB', 1);
+                
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+                
+                request.onupgradeneeded = (event) => {
+                    const database = event.target.result;
+                    
+                    // Store for archived daily plans
+                    if (!database.objectStoreNames.contains('archivedPlans')) {
+                        const planStore = database.createObjectStore('archivedPlans', { keyPath: 'archiveId', autoIncrement: true });
+                        planStore.createIndex('date', 'date', { unique: false });
+                        planStore.createIndex('staffName', 'staffName', { unique: false });
+                        planStore.createIndex('siteName', 'siteName', { unique: false });
+                    }
+                    
+                    // Store for metadata
+                    if (!database.objectStoreNames.contains('metadata')) {
+                        database.createObjectStore('metadata', { keyPath: 'key' });
+                    }
+                };
+            });
+        }
+
+        // Archive current plans to IndexedDB
+        async function archiveCurrentPlans() {
+            if (!db) await initIndexedDB();
+            
+            const today = new Date().toISOString().split('T')[0];
+            const plansToArchive = plans.filter(p => p.date === today);
+            
+            if (plansToArchive.length === 0) {
+                showToast('No plans to archive for today');
+                return;
+            }
+
+            const transaction = db.transaction(['archivedPlans'], 'readwrite');
+            const store = transaction.objectStore('archivedPlans');
+
+            let archivedCount = 0;
+            
+            for (const plan of plansToArchive) {
+                // Create individual records for each staff member for easier querying
+                const allStaff = [...plan.engineers, ...plan.technicians];
+                
+                for (const staffName of allStaff) {
+                    const record = {
+                        date: plan.date,
+                        siteName: plan.siteName,
+                        workType: plan.workType,
+                        time: plan.time,
+                        staffName: staffName,
+                        role: plan.engineers.includes(staffName) ? 'Engineer' : 'Technician',
+                        vehicleNeeded: getVehicleNeeded(plan.workType),
+                        driverRequired: isDriverRequired(plan),
+                        driverName: getDriverName(plan),
+                        remarks: plan.remarks || '',
+                        archivedAt: new Date().toISOString()
+                    };
+                    
+                    await new Promise((resolve, reject) => {
+                        const request = store.add(record);
+                        request.onsuccess = () => resolve();
+                        request.onerror = () => reject(request.error);
+                    });
+                    archivedCount++;
+                }
+            }
+
+            showToast(`Archived ${archivedCount} records for ${today}`);
+            updateArchiveCount();
+        }
+
+        // Get archived records with filters
+        async function getArchivedRecords(filters = {}) {
+            if (!db) await initIndexedDB();
+            
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['archivedPlans'], 'readonly');
+                const store = transaction.objectStore('archivedPlans');
+                const request = store.openCursor();
+                
+                const records = [];
+                
+                request.onsuccess = (event) => {
+                    const cursor = event.target.result;
+                    
+                    if (cursor) {
+                        const record = cursor.value;
+                        let match = true;
+                        
+                        // Apply filters
+                        if (filters.staffName && record.staffName !== filters.staffName) match = false;
+                        if (filters.role && record.role !== filters.role) match = false;
+                        if (filters.siteName && !record.siteName.toLowerCase().includes(filters.siteName.toLowerCase())) match = false;
+                        if (filters.fromDate && record.date < filters.fromDate) match = false;
+                        if (filters.toDate && record.date > filters.toDate) match = false;
+                        if (filters.workType && record.workType !== filters.workType) match = false;
+                        
+                        if (match) records.push(record);
+                        cursor.continue();
+                    } else {
+                        // Sort by date descending
+                        records.sort((a, b) => new Date(b.date) - new Date(a.date));
+                        resolve(records);
+                    }
+                };
+                
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Get unique staff from archive
+        async function getArchivedStaff() {
+            const records = await getArchivedRecords({});
+            const staffSet = new Set(records.map(r => r.staffName));
+            return Array.from(staffSet).sort();
+        }
+
+        // Update archive count display
+        async function updateArchiveCount() {
+            if (!db) await initIndexedDB();
+            const records = await getArchivedRecords({});
+            const countEl = document.getElementById('archive-count');
+            if (countEl) countEl.textContent = `${records.length} records archived`;
+        }
+
+        // Load data from localStorage or use defaults
+        function loadData() {
+            try {
+                const savedStaff = localStorage.getItem('fleetPlan_staff');
+                const savedWorkTypes = localStorage.getItem('fleetPlan_workTypes');
+                const savedPlans = localStorage.getItem('fleetPlan_plans');
+
+                if (savedStaff) {
+                    staff = JSON.parse(savedStaff);
+                } else {
+                    staff = JSON.parse(JSON.stringify(defaultStaff));
+                }
+
+                if (savedWorkTypes) {
+                    workTypes = JSON.parse(savedWorkTypes);
+                } else {
+                    workTypes = JSON.parse(JSON.stringify(defaultWorkTypes));
+                }
+
+                if (savedPlans) {
+                    plans = JSON.parse(savedPlans);
+                } else {
+                    plans = JSON.parse(JSON.stringify(defaultPlans));
+                }
+            } catch (e) {
+                console.error('Error loading data:', e);
+                staff = JSON.parse(JSON.stringify(defaultStaff));
+                workTypes = JSON.parse(JSON.stringify(defaultWorkTypes));
+                plans = JSON.parse(JSON.stringify(defaultPlans));
+            }
+        }
+
+        // Save data to localStorage
+        function saveAllData() {
+            try {
+                localStorage.setItem('fleetPlan_staff', JSON.stringify(staff));
+                localStorage.setItem('fleetPlan_workTypes', JSON.stringify(workTypes));
+                localStorage.setItem('fleetPlan_plans', JSON.stringify(plans));
+                showToast('All data saved successfully!');
+            } catch (e) {
+                console.error('Error saving data:', e);
+                showToast('Error saving data!');
+            }
+        }
+
+        // Clear all data
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all data?')) {
+                localStorage.removeItem('fleetPlan_staff');
+                localStorage.removeItem('fleetPlan_workTypes');
+                localStorage.removeItem('fleetPlan_plans');
+                
+                // Clear IndexedDB
+                if (db) {
+                    const transaction = db.transaction(['archivedPlans'], 'readwrite');
+                    const store = transaction.objectStore('archivedPlans');
+                    store.clear();
+                }
+                
+                staff = [];
+                workTypes = [];
+                plans = [];
+                renderAll();
+                showToast('All data cleared');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async function() {
+            loadData();
+            await initIndexedDB();
+            renderAll();
+            updateArchiveCount();
+            document.getElementById('metric-date-display').textContent = new Date().toLocaleDateString('en-GB');
+            
+            // Populate history staff filter
+            populateHistoryStaffFilter();
+            
+            // Setup drag and drop for Excel upload
+            setupExcelDragDrop();
+        });
+
+        function switchTab(tabName) {
+            // Hide all views
+            document.getElementById('view-dashboard').classList.add('hidden');
+            document.getElementById('view-planning').classList.add('hidden');
+            document.getElementById('view-history').classList.add('hidden');
+            document.getElementById('view-master').classList.add('hidden');
+
+            // Remove active class from all tabs
+            document.getElementById('tab-dashboard').classList.remove('tab-active');
+            document.getElementById('tab-planning').classList.remove('tab-active');
+            document.getElementById('tab-history').classList.remove('tab-active');
+            document.getElementById('tab-master').classList.remove('tab-active');
+            document.getElementById('tab-dashboard').classList.add('text-slate-500');
+            document.getElementById('tab-planning').classList.add('text-slate-500');
+            document.getElementById('tab-history').classList.add('text-slate-500');
+            document.getElementById('tab-master').classList.add('text-slate-500');
+
+            // Show selected view
+            document.getElementById('view-' + tabName).classList.remove('hidden');
+            document.getElementById('tab-' + tabName).classList.add('tab-active');
+            document.getElementById('tab-' + tabName).classList.remove('text-slate-500');
+
+            if (tabName === 'history') {
+                populateHistoryStaffFilter();
+                applyHistoryFilters();
+            } else {
+                renderAll();
+            }
+        }
+
+        function renderAll() {
+            renderStaff();
+            renderWorkTypes();
+            renderPlanning();
+            updateDashboard();
+        }
+
+        // Enhanced License Logic
+        function canDrive(personName, vehicleType) {
+            const person = staff.find(s => s.name === personName);
+            if (!person) return false;
+            if (person.hasLicense !== 'Yes') return false;
+            if (person.licenseExpiry === '-') return false;
+
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const expiry = new Date(person.licenseExpiry);
+            if (expiry < today) return false;
+
+            // Role-based vehicle permissions
+            if (person.role === 'Driver') {
+                // Professional drivers can drive their licensed vehicle AND Car
+                return person.vehicleType === vehicleType || vehicleType === 'Car';
+            } else {
+                // Engineers/Technicians can ONLY drive their specifically licensed vehicle
+                return person.vehicleType === vehicleType;
+            }
+        }
+
+        function getVehicleNeeded(workType) {
+            const wt = workTypes.find(w => w.type === workType);
+            return wt ? wt.vehicle : '-';
+        }
+
+        function isDriverRequired(plan) {
+            const vehicle = getVehicleNeeded(plan.workType);
+            if (vehicle === '-') return 'NO';
+
+            // Check if any engineer can drive
+            const engineerCanDrive = plan.engineers.some(eng => canDrive(eng, vehicle));
+            // Check if any technician can drive
+            const technicianCanDrive = plan.technicians.some(tech => canDrive(tech, vehicle));
+
+            return (engineerCanDrive || technicianCanDrive) ? 'NO' : 'YES';
+        }
+
+        // FIXED: Track driver assignments by date using stored assignedDriver property
+        function getAssignedDriversOnDate(date, excludePlanId) {
+            return plans
+                .filter(p => p.date === date && p.id !== excludePlanId && p.assignedDriver && p.assignedDriver !== 'Self Drive' && p.assignedDriver !== 'No Driver Available')
+                .map(p => p.assignedDriver);
+        }
+
+        // FIXED: Store assigned driver in plan object to prevent duplicates
+        function getDriverName(plan) {
+            // First check if driver is already assigned to this plan and not in override mode
+            if (plan.assignedDriver && !plan.driverOverride) {
+                return plan.assignedDriver;
+            }
+
+            if (isDriverRequired(plan) === 'NO') {
+                plan.assignedDriver = 'Self Drive';
+                return 'Self Drive';
+            }
+
+            const vehicle = getVehicleNeeded(plan.workType);
+            const assignedDrivers = getAssignedDriversOnDate(plan.date, plan.id);
+
+            // If override is set, allow any available driver
+            if (plan.driverOverride) {
+                const availableDriver = staff.find(s => 
+                    s.role === 'Driver' && 
+                    s.available === 'Yes' && 
+                    s.hasLicense === 'Yes' &&
+                    (s.vehicleType === vehicle || s.vehicleType === 'Car' || vehicle === 'Car')
+                );
+                const driverName = availableDriver ? availableDriver.name + ' (Manual)' : 'No Driver Available';
+                plan.assignedDriver = driverName;
+                return driverName;
+            }
+
+            // Find first available driver not already assigned on this date
+            const availableDriver = staff.find(s => 
+                s.role === 'Driver' && 
+                s.available === 'Yes' && 
+                s.hasLicense === 'Yes' &&
+                (s.vehicleType === vehicle || s.vehicleType === 'Car' || vehicle === 'Car') &&
+                !assignedDrivers.includes(s.name)
+            );
+
+            if (availableDriver) {
+                plan.assignedDriver = availableDriver.name;
+                return availableDriver.name;
+            }
+
+            // If all drivers assigned, check if we can reuse (with warning)
+            const anyDriver = staff.find(s => 
+                s.role === 'Driver' && 
+                s.available === 'Yes' && 
+                s.hasLicense === 'Yes' &&
+                (s.vehicleType === vehicle || s.vehicleType === 'Car' || vehicle === 'Car')
+            );
+
+            const fallbackDriver = anyDriver ? anyDriver.name + ' (Double-booked!)' : 'No Driver Available';
+            plan.assignedDriver = fallbackDriver;
+            return fallbackDriver;
+        }
+
+        // Render Functions
+        function renderStaff() {
+            const tbody = document.getElementById('staff-body');
+            if (!tbody) return;
+
+            tbody.innerHTML = staff.map(s => `
+                <tr class="table-row border-b border-slate-50 hover:bg-slate-50">
+                    <td class="p-3 font-medium text-slate-900">${s.id}</td>
+                    <td class="p-3">
+                        <input type="text" value="${s.name}" onchange="updateStaff(${s.id}, 'name', this.value)" 
+                            class="input-field w-full px-2 py-1 rounded bg-transparent hover:bg-white">
+                    </td>
+                    <td class="p-3">
+                        <select onchange="updateStaff(${s.id}, 'role', this.value)" 
+                            class="input-field w-full px-2 py-1 rounded bg-transparent hover:bg-white text-sm">
+                            <option value="Engineer" ${s.role === 'Engineer' ? 'selected' : ''}>Engineer</option>
+                            <option value="Technician" ${s.role === 'Technician' ? 'selected' : ''}>Technician</option>
+                            <option value="Driver" ${s.role === 'Driver' ? 'selected' : ''}>Driver</option>
+                        </select>
+                    </td>
+                    <td class="p-3">
+                        <select onchange="updateStaff(${s.id}, 'hasLicense', this.value)" 
+                            class="input-field w-full px-2 py-1 rounded bg-transparent hover:bg-white text-sm">
+                            <option value="Yes" ${s.hasLicense === 'Yes' ? 'selected' : ''}>Yes</option>
+                            <option value="No" ${s.hasLicense === 'No' ? 'selected' : ''}>No</option>
+                        </select>
+                    </td>
+                    <td class="p-3">
+                        <select onchange="updateStaff(${s.id}, 'vehicleType', this.value)" 
+                            class="input-field w-full px-2 py-1 rounded bg-transparent hover:bg-white text-sm">
+                            <option value="-" ${s.vehicleType === '-' ? 'selected' : ''}>-</option>
+                            <option value="Car" ${s.vehicleType === 'Car' ? 'selected' : ''}>Car</option>
+                            <option value="Bike" ${s.vehicleType === 'Bike' ? 'selected' : ''}>Bike</option>
+                            <option value="Pickup" ${s.vehicleType === 'Pickup' ? 'selected' : ''}>Pickup</option>
+                        </select>
+                    </td>
+                    <td class="p-3">
+                        <input type="date" value="${s.licenseExpiry === '-' ? '' : s.licenseExpiry}" 
+                            onchange="updateStaff(${s.id}, 'licenseExpiry', this.value || '-')" 
+                            class="input-field w-full px-2 py-1 rounded bg-transparent hover:bg-white text-sm">
+                    </td>
+                    <td class="p-3">
+                        <select onchange="updateStaff(${s.id}, 'available', this.value)" 
+                            class="input-field w-full px-2 py-1 rounded bg-transparent hover:bg-white text-sm">
+                            <option value="Yes" ${s.available === 'Yes' ? 'selected' : ''}>Yes</option>
+                            <option value="No" ${s.available === 'No' ? 'selected' : ''}>No</option>
+                        </select>
+                    </td>
+                    <td class="p-3 text-center">
+                        <button onclick="deleteStaff(${s.id})" class="text-red-500 hover:text-red-700 transition-colors">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderWorkTypes() {
+            const tbody = document.getElementById('worktype-body');
+            if (!tbody) return;
+
+            tbody.innerHTML = workTypes.map((wt, idx) => `
+                <tr class="table-row border-b border-slate-50 hover:bg-slate-50">
+                    <td class="p-3">
+                        <input type="text" value="${wt.type}" onchange="updateWorkType(${idx}, 'type', this.value)" 
+                            class="input-field w-full px-2 py-1 rounded bg-transparent hover:bg-white font-medium">
+                    </td>
+                    <td class="p-3">
+                        <select onchange="updateWorkType(${idx}, 'vehicle', this.value)" 
+                            class="input-field w-full px-2 py-1 rounded bg-transparent hover:bg-white text-sm">
+                            <option value="Car" ${wt.vehicle === 'Car' ? 'selected' : ''}>Car</option>
+                            <option value="Bike" ${wt.vehicle === 'Bike' ? 'selected' : ''}>Bike</option>
+                            <option value="Pickup" ${wt.vehicle === 'Pickup' ? 'selected' : ''}>Pickup</option>
+                        </select>
+                    </td>
+                    <td class="p-3 text-center">
+                        <button onclick="deleteWorkType(${idx})" class="text-red-500 hover:text-red-700 transition-colors">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderPlanning() {
+            const tbody = document.getElementById('planning-body');
+            const emptyState = document.getElementById('empty-planning');
+            if (!tbody) return;
+
+            if (plans.length === 0) {
+                tbody.innerHTML = '';
+                if (emptyState) emptyState.classList.remove('hidden');
+                return;
+            }
+
+            if (emptyState) emptyState.classList.add('hidden');
+
+            tbody.innerHTML = plans.map(plan => {
+                const vehicleNeeded = getVehicleNeeded(plan.workType);
+                const driverRequired = isDriverRequired(plan);
+                const driverName = getDriverName(plan);
+
+                let driverClass = '';
+                let driverIcon = '';
+                if (driverRequired === 'YES') {
+                    driverClass = 'driver-yes';
+                    driverIcon = '<i class="fas fa-user-tie mr-1"></i>';
+                } else if (driverName === 'Self Drive') {
+                    driverClass = 'driver-no';
+                    driverIcon = '<i class="fas fa-car mr-1"></i>';
+                } else {
+                    driverClass = 'driver-self';
+                    driverIcon = '<i class="fas fa-check mr-1"></i>';
+                }
+
+                // Render engineers tags
+                const engineersHtml = plan.engineers.map(eng => `
+                    <span class="staff-tag">
+                        ${eng}
+                        <button onclick="removeStaffFromPlan(${plan.id}, 'engineers', '${eng}')" class="hover:text-red-600">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </span>
+                `).join('');
+
+                // Render technicians tags
+                const techniciansHtml = plan.technicians.map(tech => `
+                    <span class="staff-tag">
+                        ${tech}
+                        <button onclick="removeStaffFromPlan(${plan.id}, 'technicians', '${tech}')" class="hover:text-red-600">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </span>
+                `).join('');
+
+                // FIXED: Use plan.assignedDriver for display if available
+                const displayDriverName = plan.assignedDriver || driverName;
+                const isDoubleBooked = displayDriverName.includes('Double-booked');
+                const isManual = displayDriverName.includes('Manual');
+
+                return `
+                <tr class="table-row border-b border-slate-50 hover:bg-slate-50">
+                    <td class="p-4">
+                        <input type="date" value="${plan.date}" onchange="updatePlan(${plan.id}, 'date', this.value)" 
+                            class="input-field w-full px-2 py-1 rounded text-sm">
+                    </td>
+                    <td class="p-4">
+                        <input type="text" value="${plan.siteName}" onchange="updatePlan(${plan.id}, 'siteName', this.value)" 
+                            class="input-field w-full px-2 py-1 rounded font-medium text-slate-800">
+                    </td>
+                    <td class="p-4">
+                        <select onchange="updatePlan(${plan.id}, 'workType', this.value)" 
+                            class="input-field w-full px-2 py-1 rounded text-sm bg-white">
+                            ${workTypes.map(wt => `<option value="${wt.type}" ${plan.workType === wt.type ? 'selected' : ''}>${wt.type}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td class="p-4">
+                        <input type="time" value="${plan.time || ''}" onchange="updatePlan(${plan.id}, 'time', this.value)" 
+                            class="input-field w-full px-2 py-1 rounded text-sm">
+                    </td>
+                    <td class="p-4">
+                        <div class="flex flex-wrap gap-1 mb-1">
+                            ${engineersHtml}
+                        </div>
+                        <button onclick="openStaffModal(${plan.id}, 'engineers')" class="add-staff-btn">
+                            <i class="fas fa-plus mr-1"></i>Add Engineer
+                        </button>
+                    </td>
+                    <td class="p-4">
+                        <div class="flex flex-wrap gap-1 mb-1">
+                            ${techniciansHtml}
+                        </div>
+                        <button onclick="openStaffModal(${plan.id}, 'technicians')" class="add-staff-btn">
+                            <i class="fas fa-plus mr-1"></i>Add Technician
+                        </button>
+                    </td>
+                    <td class="p-4 bg-blue-50/50">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                            <i class="fas fa-truck mr-2"></i>${vehicleNeeded}
+                        </span>
+                    </td>
+                    <td class="p-4 bg-slate-50/50">
+                        <span class="status-badge inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${driverClass}">
+                            ${driverIcon}${driverRequired}
+                        </span>
+                    </td>
+                    <td class="p-4 bg-green-50/50">
+                        <div class="flex items-center justify-between">
+                            <span class="font-medium text-slate-800 ${isDoubleBooked ? 'text-red-600' : ''}">
+                                ${displayDriverName.replace(' (Double-booked!)', '').replace(' (Manual)', '')}
+                            </span>
+                            ${driverRequired === 'YES' ? `
+                                <button onclick="toggleDriverOverride(${plan.id})" 
+                                    class="driver-override ${plan.driverOverride ? 'active' : ''}" 
+                                    title="Allow driver to be assigned to multiple sites">
+                                    <i class="fas fa-unlock"></i> ${plan.driverOverride ? 'Manual' : 'Auto'}
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                    <td class="p-4">
+                        <input type="text" value="${plan.remarks || ''}" onchange="updatePlan(${plan.id}, 'remarks', this.value)" 
+                            placeholder="Add notes..."
+                            class="input-field w-full px-2 py-1 rounded text-sm">
+                    </td>
+                    <td class="p-4 text-center">
+                        <button onclick="deletePlan(${plan.id})" class="text-red-500 hover:text-red-700 transition-colors p-2 hover:bg-red-50 rounded-lg">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+        }
+
+        function updateDashboard() {
+            const today = new Date().toISOString().split('T')[0];
+            const todayPlans = plans.filter(p => p.date === today);
+
+            const totalSites = todayPlans.length;
+            const driversNeeded = todayPlans.filter(p => isDriverRequired(p) === 'YES').length;
+            const selfDrive = todayPlans.filter(p => isDriverRequired(p) === 'NO').length;
+            const availableDrivers = staff.filter(s => s.role === 'Driver' && s.available === 'Yes').length;
+
+            animateNumber('metric-total-sites', totalSites);
+            animateNumber('metric-drivers-needed', driversNeeded);
+            animateNumber('metric-self-drive', selfDrive);
+            animateNumber('metric-available-drivers', availableDrivers);
+
+            const driverPct = totalSites > 0 ? Math.round((driversNeeded / totalSites) * 100) : 0;
+            const driverPctEl = document.getElementById('metric-driver-pct');
+            if (driverPctEl) driverPctEl.textContent = driverPct + '%';
+
+            // Engineers & Technicians at Site
+            const totalEngineers = staff.filter(s => s.role === 'Engineer').length;
+            const totalTechnicians = staff.filter(s => s.role === 'Technician').length;
+
+            const engineersAtSite = new Set();
+            const techniciansAtSite = new Set();
+
+            todayPlans.forEach(plan => {
+                plan.engineers.forEach(eng => engineersAtSite.add(eng));
+                plan.technicians.forEach(tech => techniciansAtSite.add(tech));
+            });
+
+            const engineersCount = engineersAtSite.size;
+            const techniciansCount = techniciansAtSite.size;
+
+            const engRatioEl = document.getElementById('metric-engineers-ratio');
+            const techRatioEl = document.getElementById('metric-technicians-ratio');
+            const engDetailEl = document.getElementById('metric-engineers-detail');
+            const techDetailEl = document.getElementById('metric-technicians-detail');
+
+            if (engRatioEl) engRatioEl.textContent = `${engineersCount}/${totalEngineers}`;
+            if (techRatioEl) techRatioEl.textContent = `${techniciansCount}/${totalTechnicians}`;
+            if (engDetailEl) engDetailEl.textContent = `${engineersCount} at site, ${totalEngineers - engineersCount} available`;
+            if (techDetailEl) techDetailEl.textContent = `${techniciansCount} at site, ${totalTechnicians - techniciansCount} available`;
+
+            // Expiry alerts
+            const alertsDiv = document.getElementById('expiry-alerts');
+            if (alertsDiv) {
+                const todayDate = new Date();
+                const thirtyDaysLater = new Date();
+                thirtyDaysLater.setDate(todayDate.getDate() + 30);
+
+                const expiringSoon = staff.filter(s => {
+                    if (s.licenseExpiry === '-' || s.hasLicense === 'No') return false;
+                    const expiry = new Date(s.licenseExpiry);
+                    return expiry <= thirtyDaysLater && expiry >= todayDate;
+                });
+
+                if (expiringSoon.length === 0) {
+                    alertsDiv.innerHTML = `
+                        <div class="flex items-center gap-3 text-green-600 bg-green-50 p-4 rounded-xl border border-green-200">
+                            <i class="fas fa-check-circle text-xl"></i>
+                            <div>
+                                <p class="font-semibold">All Good!</p>
+                                <p class="text-sm text-green-700">No licenses expiring in the next 30 days.</p>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    alertsDiv.innerHTML = expiringSoon.map(s => {
+                        const daysLeft = Math.ceil((new Date(s.licenseExpiry) - todayDate) / (1000 * 60 * 60 * 24));
+                        const urgency = daysLeft <= 7 ? 'text-red-600 bg-red-50 border-red-200' : 'text-amber-600 bg-amber-50 border-amber-200';
+                        const icon = daysLeft <= 7 ? 'fa-exclamation-circle' : 'fa-clock';
+
+                        return `
+                        <div class="flex items-center justify-between ${urgency} p-4 rounded-xl border">
+                            <div class="flex items-center gap-3">
+                                <i class="fas ${icon} text-xl"></i>
+                                <div>
+                                    <p class="font-semibold">${s.name} <span class="text-xs font-normal opacity-75">(${s.role})</span></p>
+                                    <p class="text-sm opacity-75">License expires: ${new Date(s.licenseExpiry).toLocaleDateString('en-GB')}</p>
+                                </div>
+                            </div>
+                            <span class="text-sm font-bold">${daysLeft} days left</span>
+                        </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            // Dashboard schedule preview
+            const scheduleBody = document.getElementById('dashboard-schedule-body');
+            if (scheduleBody) {
+                if (todayPlans.length === 0) {
+                    scheduleBody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-400">No plans for today</td></tr>';
+                } else {
+                    scheduleBody.innerHTML = todayPlans.slice(0, 5).map(plan => {
+                        const vehicle = getVehicleNeeded(plan.workType);
+                        const driverReq = isDriverRequired(plan);
+                        const driver = getDriverName(plan);
+
+                        let statusHtml = '';
+                        if (driverReq === 'NO') {
+                            statusHtml = '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fas fa-check mr-1"></i>Self Drive</span>';
+                        } else if (driver !== 'No Driver Available') {
+                            statusHtml = '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"><i class="fas fa-user-tie mr-1"></i>Driver Assigned</span>';
+                        } else {
+                            statusHtml = '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800"><i class="fas fa-exclamation-triangle mr-1"></i>No Driver</span>';
+                        }
+
+                        return `
+                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                            <td class="py-3 font-medium">${plan.siteName}</td>
+                            <td class="py-3 text-slate-600">${plan.time || '-'}</td>
+                            <td class="py-3 text-slate-600">${plan.workType}</td>
+                            <td class="py-3 text-slate-600">${plan.engineers.length} Eng, ${plan.technicians.length} Tech</td>
+                            <td class="py-3"><span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">${vehicle}</span></td>
+                            <td class="py-3">${statusHtml}</td>
+                        </tr>
+                        `;
+                    }).join('');
+                }
+            }
+        }
+
+        function animateNumber(id, target) {
+            const element = document.getElementById(id);
+            if (!element) return;
+            const current = parseInt(element.textContent) || 0;
+            if (current === target) return;
+
+            const increment = target > current ? 1 : -1;
+            const timer = setInterval(() => {
+                const val = parseInt(element.textContent) || 0;
+                if (val === target) {
+                    clearInterval(timer);
+                } else {
+                    element.textContent = val + increment;
+                }
+            }, 20);
+        }
+
+        // Staff Modal Functions
+        function openStaffModal(planId, field) {
+            currentEditingPlanId = planId;
+            currentEditingField = field;
+            const modalTitle = document.getElementById('modalTitle');
+            if (modalTitle) modalTitle.textContent = `Select ${field === 'engineers' ? 'Engineers' : 'Technicians'}`;
+            const modal = document.getElementById('staffModal');
+            if (modal) modal.style.display = 'block';
+            renderStaffModalList();
+        }
+
+        function closeStaffModal() {
+            const modal = document.getElementById('staffModal');
+            if (modal) modal.style.display = 'none';
+            currentEditingPlanId = null;
+            currentEditingField = null;
+        }
+
+        function renderStaffModalList() {
+            const plan = plans.find(p => p.id === currentEditingPlanId);
+            if (!plan) return;
+
+            const role = currentEditingField === 'engineers' ? 'Engineer' : 'Technician';
+            const availableStaff = staff.filter(s => s.role === role && s.available === 'Yes');
+
+            const listDiv = document.getElementById('staffModalList');
+            if (!listDiv) return;
+
+            listDiv.innerHTML = availableStaff.map(s => {
+                const isSelected = plan[currentEditingField].includes(s.name);
+                return `
+                    <div class="flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg cursor-pointer ${isSelected ? 'bg-blue-50 border border-blue-200' : 'border border-transparent'}" 
+                         onclick="toggleStaffSelection('${s.name}')">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full ${isSelected ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-600'} flex items-center justify-center text-sm font-bold">
+                                ${isSelected ? '<i class="fas fa-check"></i>' : s.name.charAt(0)}
+                            </div>
+                            <div>
+                                <p class="font-medium text-slate-800">${s.name}</p>
+                                <p class="text-xs text-slate-500">${s.role} ${s.hasLicense === 'Yes' ? '• Licensed' : ''}</p>
+                            </div>
+                        </div>
+                        ${isSelected ? '<i class="fas fa-check-circle text-blue-500"></i>' : '<i class="far fa-circle text-slate-300"></i>'}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterStaffModal() {
+            const searchInput = document.getElementById('staffSearch');
+            if (!searchInput) return;
+
+            const search = searchInput.value.toLowerCase();
+            const plan = plans.find(p => p.id === currentEditingPlanId);
+            if (!plan) return;
+
+            const role = currentEditingField === 'engineers' ? 'Engineer' : 'Technician';
+            const availableStaff = staff.filter(s => 
+                s.role === role && 
+                s.available === 'Yes' &&
+                s.name.toLowerCase().includes(search)
+            );
+
+            const listDiv = document.getElementById('staffModalList');
+            if (!listDiv) return;
+
+            listDiv.innerHTML = availableStaff.map(s => {
+                const isSelected = plan[currentEditingField].includes(s.name);
+                return `
+                    <div class="flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg cursor-pointer ${isSelected ? 'bg-blue-50 border border-blue-200' : 'border border-transparent'}" 
+                         onclick="toggleStaffSelection('${s.name}')">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full ${isSelected ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-600'} flex items-center justify-center text-sm font-bold">
+                                ${isSelected ? '<i class="fas fa-check"></i>' : s.name.charAt(0)}
+                            </div>
+                            <div>
+                                <p class="font-medium text-slate-800">${s.name}</p>
+                                <p class="text-xs text-slate-500">${s.role} ${s.hasLicense === 'Yes' ? '• Licensed' : ''}</p>
+                            </div>
+                        </div>
+                        ${isSelected ? '<i class="fas fa-check-circle text-blue-500"></i>' : '<i class="far fa-circle text-slate-300"></i>'}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleStaffSelection(staffName) {
+            const plan = plans.find(p => p.id === currentEditingPlanId);
+            if (!plan) return;
+
+            const index = plan[currentEditingField].indexOf(staffName);
+
+            if (index > -1) {
+                plan[currentEditingField].splice(index, 1);
+            } else {
+                plan[currentEditingField].push(staffName);
+            }
+
+            // FIXED: Reset assigned driver when team changes
+            plan.assignedDriver = null;
+
+            renderStaffModalList();
+            renderAll();
+            saveAllData();
+        }
+
+        function removeStaffFromPlan(planId, field, staffName) {
+            const plan = plans.find(p => p.id === planId);
+            if (!plan) return;
+
+            const index = plan[field].indexOf(staffName);
+            if (index > -1) {
+                plan[field].splice(index, 1);
+                // FIXED: Reset assigned driver when team changes
+                plan.assignedDriver = null;
+                renderAll();
+                saveAllData();
+            }
+        }
+
+        function toggleDriverOverride(planId) {
+            const plan = plans.find(p => p.id === planId);
+            if (plan) {
+                plan.driverOverride = !plan.driverOverride;
+                // FIXED: Reset assigned driver when override changes
+                plan.assignedDriver = null;
+                renderAll();
+                saveAllData();
+            }
+        }
+
+        // CRUD Operations
+        function updateStaff(id, field, value) {
+            const s = staff.find(x => x.id === id);
+            if (s) {
+                s[field] = value;
+                saveAllData();
+                renderAll();
+                showToast('Staff updated successfully');
+            }
+        }
+
+        function deleteStaff(id) {
+            if (confirm('Are you sure you want to delete this staff member?')) {
+                staff = staff.filter(s => s.id !== id);
+                saveAllData();
+                renderAll();
+                showToast('Staff deleted');
+            }
+        }
+
+        function addNewStaff() {
+            const newId = Math.max(...staff.map(s => s.id), 0) + 1;
+            staff.push({
+                id: newId,
+                name: 'New Staff',
+                role: 'Engineer',
+                hasLicense: 'No',
+                vehicleType: '-',
+                licenseExpiry: '-',
+                available: 'Yes'
+            });
+            saveAllData();
+            renderAll();
+            showToast('New staff added');
+        }
+
+        function updateWorkType(idx, field, value) {
+            workTypes[idx][field] = value;
+            saveAllData();
+            renderAll();
+            showToast('Work type updated');
+        }
+
+        function deleteWorkType(idx) {
+            if (confirm('Delete this work type?')) {
+                workTypes.splice(idx, 1);
+                saveAllData();
+                renderAll();
+                showToast('Work type deleted');
+            }
+        }
+
+        function addNewWorkType() {
+            workTypes.push({ type: 'New Type', vehicle: 'Car' });
+            saveAllData();
+            renderAll();
+            showToast('New work type added');
+        }
+
+        function updatePlan(id, field, value) {
+            const plan = plans.find(p => p.id === id);
+            if (plan) {
+                plan[field] = value;
+                // FIXED: Reset assigned driver when date, workType, or team changes
+                if (field === 'date' || field === 'workType' || field === 'engineers' || field === 'technicians') {
+                    plan.assignedDriver = null;
+                }
+                saveAllData();
+                renderAll();
+            }
+        }
+
+        function deletePlan(id) {
+            if (confirm('Delete this plan?')) {
+                plans = plans.filter(p => p.id !== id);
+                saveAllData();
+                renderAll();
+                showToast('Plan deleted');
+            }
+        }
+
+        function addNewPlan() {
+            const newId = Math.max(...plans.map(p => p.id), 0) + 1;
+            const today = new Date().toISOString().split('T')[0];
+            const defaultEngineer = staff.find(s => s.role === 'Engineer')?.name || '';
+            const defaultTechnician = staff.find(s => s.role === 'Technician')?.name || '';
+
+            plans.push({
+                id: newId,
+                date: today,
+                siteName: `Site ${String.fromCharCode(65 + plans.length)}`,
+                workType: workTypes[0]?.type || 'Office',
+                time: '09:00',
+                engineers: defaultEngineer ? [defaultEngineer] : [],
+                technicians: defaultTechnician ? [defaultTechnician] : [],
+                remarks: '',
+                driverOverride: false,
+                assignedDriver: null  // FIXED: Initialize assignedDriver
+            });
+            saveAllData();
+            renderAll();
+            showToast('New site plan added');
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            if (toast && toastMessage) {
+                toastMessage.textContent = message;
+                toast.classList.remove('translate-y-20');
+                setTimeout(() => {
+                    toast.classList.add('translate-y-20');
+                }, 3000);
+            }
+        }
+
+        function exportData() {
+            let csv = 'Date,Site Name,Work Type,Time,Engineers,Technicians,Vehicle Needed,Driver Required,Driver Name,Remarks\n';
+            plans.forEach(plan => {
+                csv += `${plan.date},${plan.siteName},${plan.workType},${plan.time || ''},"${plan.engineers.join('; ')}","${plan.technicians.join('; ')}",${getVehicleNeeded(plan.workType)},${isDriverRequired(plan)},${getDriverName(plan)},"${plan.remarks || ''}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `daily-plan-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            showToast('Data exported to CSV');
+        }
+
+        // Excel Upload Functions
+        function setupExcelDragDrop() {
+            const uploadArea = document.getElementById('excel-upload-area');
+            if (!uploadArea) return;
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => {
+                    uploadArea.classList.add('dragover');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => {
+                    uploadArea.classList.remove('dragover');
+                }, false);
+            });
+
+            uploadArea.addEventListener('drop', handleDrop, false);
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        function handleExcelUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // Get first worksheet
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    
+                    // Convert to JSON
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    
+                    if (jsonData.length < 2) {
+                        showToast('Excel file is empty or invalid format');
+                        return;
+                    }
+                    
+                    // Parse headers (first row)
+                    const headers = jsonData[0].map(h => h.toString().toLowerCase().trim());
+                    
+                    // Expected columns mapping
+                    const columnMap = {
+                        'id': ['id', 'staff id', 'employee id', 'no', 'number'],
+                        'name': ['name', 'staff name', 'employee name', 'full name'],
+                        'role': ['role', 'position', 'designation', 'job title'],
+                        'hasLicense': ['has license', 'license', 'driving license', 'haslicense', 'has_license'],
+                        'vehicleType': ['vehicle type', 'vehicle', 'authorized vehicle', 'vehicletype', 'vehicle_type'],
+                        'licenseExpiry': ['license expiry', 'expiry date', 'license expiry date', 'expiry', 'licenseexpiry', 'license_expiry'],
+                        'available': ['available', 'status', 'active', 'is available']
+                    };
+                    
+                    // Find column indices
+                    const indices = {};
+                    for (const [key, possibleNames] of Object.entries(columnMap)) {
+                        for (let i = 0; i < headers.length; i++) {
+                            if (possibleNames.some(name => headers[i].includes(name))) {
+                                indices[key] = i;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Check if required columns found
+                    if (indices.name === undefined) {
+                        showToast('Could not find "Name" column. Please check your Excel format.');
+                        return;
+                    }
+                    
+                    // Parse data rows
+                    pendingExcelData = [];
+                    for (let i = 1; i < jsonData.length; i++) {
+                        const row = jsonData[i];
+                        if (row.length === 0 || !row[indices.name]) continue;
+                        
+                        const record = {
+                            id: parseInt(row[indices.id]) || (Math.max(...staff.map(s => s.id), 0) + pendingExcelData.length + 1),
+                            name: row[indices.name]?.toString().trim() || '',
+                            role: row[indices.role]?.toString().trim() || 'Engineer',
+                            hasLicense: row[indices.hasLicense]?.toString().trim() || 'No',
+                            vehicleType: row[indices.vehicleType]?.toString().trim() || '-',
+                            licenseExpiry: formatDate(row[indices.licenseExpiry]) || '-',
+                            available: row[indices.available]?.toString().trim() || 'Yes'
+                        };
+                        
+                        // Normalize values
+                        record.hasLicense = ['yes', 'y', 'true', '1'].includes(record.hasLicense.toLowerCase()) ? 'Yes' : 'No';
+                        record.available = ['yes', 'y', 'true', '1', 'active'].includes(record.available.toLowerCase()) ? 'Yes' : 'No';
+                        
+                        // Validate role
+                        const validRoles = ['Engineer', 'Technician', 'Driver'];
+                        if (!validRoles.includes(record.role)) {
+                            record.role = 'Engineer'; // Default
+                        }
+                        
+                        // Validate vehicle type
+                        const validVehicles = ['-', 'Car', 'Bike', 'Pickup'];
+                        if (!validVehicles.includes(record.vehicleType)) {
+                            record.vehicleType = '-';
+                        }
+                        
+                        pendingExcelData.push(record);
+                    }
+                    
+                    if (pendingExcelData.length === 0) {
+                        showToast('No valid data found in Excel file');
+                        return;
+                    }
+                    
+                    // Show preview
+                    document.getElementById('upload-filename').textContent = file.name;
+                    document.getElementById('upload-count').textContent = `${pendingExcelData.length} records found`;
+                    document.getElementById('upload-preview').classList.remove('hidden');
+                    
+                    showToast(`Found ${pendingExcelData.length} records ready to import`);
+                    
+                } catch (error) {
+                    console.error('Error parsing Excel:', error);
+                    showToast('Error reading Excel file. Please check the format.');
+                }
+            };
+            
+            reader.onerror = function() {
+                showToast('Error reading file');
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+
+        function formatDate(dateValue) {
+            if (!dateValue) return '-';
+            
+            // If it's already a string in YYYY-MM-DD format
+            if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+                return dateValue;
+            }
+            
+            // If it's a Date object or Excel serial number
+            let date;
+            if (typeof dateValue === 'number') {
+                // Excel serial date
+                date = new Date((dateValue - 25569) * 86400 * 1000);
+            } else {
+                date = new Date(dateValue);
+            }
+            
+            if (isNaN(date.getTime())) return '-';
+            
+            return date.toISOString().split('T')[0];
+        }
+
+        function cancelExcelUpload() {
+            pendingExcelData = [];
+            document.getElementById('upload-preview').classList.add('hidden');
+            document.getElementById('excel-file-input').value = '';
+            showToast('Upload cancelled');
+        }
+
+        function confirmExcelUpload() {
+            if (pendingExcelData.length === 0) {
+                showToast('No data to import');
+                return;
+            }
+            
+            // Replace current staff with imported data
+            staff = [...pendingExcelData];
+            
+            // Save and refresh
+            saveAllData();
+            renderAll();
+            
+            // Clear pending data
+            pendingExcelData = [];
+            document.getElementById('upload-preview').classList.add('hidden');
+            document.getElementById('excel-file-input').value = '';
+            
+            showToast(`Successfully imported ${staff.length} staff records`);
+        }
+
+        // History & Reports Functions
+        async function populateHistoryStaffFilter() {
+            const select = document.getElementById('history-staff-filter');
+            if (!select) return;
+            
+            // Get staff from current master data
+            const currentStaff = staff.map(s => s.name);
+            
+            // Get staff from archive
+            const archivedStaff = await getArchivedStaff();
+            
+            // Combine and deduplicate
+            const allStaff = [...new Set([...currentStaff, ...archivedStaff])].sort();
+            
+            select.innerHTML = '<option value="">All Staff</option>' +
+                allStaff.map(name => `<option value="${name}">${name}</option>`).join('');
+        }
+
+        async function applyHistoryFilters() {
+            const staffName = document.getElementById('history-staff-filter')?.value || '';
+            const role = document.getElementById('history-role-filter')?.value || '';
+            const fromDate = document.getElementById('history-from-date')?.value || '';
+            const toDate = document.getElementById('history-to-date')?.value || '';
+            
+            const filters = {};
+            if (staffName) filters.staffName = staffName;
+            if (role) filters.role = role;
+            if (fromDate) filters.fromDate = fromDate;
+            if (toDate) filters.toDate = toDate;
+            
+            const records = await getArchivedRecords(filters);
+            renderHistoryResults(records, filters);
+        }
+
+        function renderHistoryResults(records, filters) {
+            // Update statistics
+            const uniqueDates = [...new Set(records.map(r => r.date))];
+            const uniqueSites = [...new Set(records.map(r => r.siteName))];
+            
+            document.getElementById('stat-total-days').textContent = uniqueDates.length;
+            document.getElementById('stat-total-sites').textContent = uniqueSites.length;
+            document.getElementById('stat-as-engineer').textContent = records.filter(r => r.role === 'Engineer').length;
+            document.getElementById('stat-as-technician').textContent = records.filter(r => r.role === 'Technician').length;
+            
+            // Count driver assignments
+            const driverCount = records.filter(r => {
+                const plan = plans.find(p => p.date === r.date && p.siteName === r.siteName);
+                return plan && getDriverName(plan) === r.staffName;
+            }).length;
+            document.getElementById('stat-as-driver').textContent = driverCount;
+            
+            // Date range display
+            if (records.length > 0) {
+                const dates = records.map(r => new Date(r.date));
+                const minDate = new Date(Math.min(...dates));
+                const maxDate = new Date(Math.max(...dates));
+                document.getElementById('stat-date-range').textContent = 
+                    `${minDate.toLocaleDateString()} - ${maxDate.toLocaleDateString()}`;
+            } else {
+                document.getElementById('stat-date-range').textContent = '-';
+            }
+            
+            // Render timeline view
+            const timelineContainer = document.getElementById('timeline-container');
+            const emptyHistory = document.getElementById('empty-history');
+            
+            if (records.length === 0) {
+                timelineContainer.innerHTML = '';
+                document.getElementById('history-table-body').innerHTML = '';
+                emptyHistory.classList.remove('hidden');
+                return;
+            }
+            
+            emptyHistory.classList.add('hidden');
+            
+            // Group by date for timeline
+            const groupedByDate = records.reduce((acc, record) => {
+                if (!acc[record.date]) acc[record.date] = [];
+                acc[record.date].push(record);
+                return acc;
+            }, {});
+            
+            timelineContainer.innerHTML = Object.entries(groupedByDate).map(([date, dayRecords]) => {
+                const dateObj = new Date(date);
+                const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+                const formattedDate = dateObj.toLocaleDateString('en-GB');
+                
+                return `
+                    <div class="timeline-item">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h4 class="font-bold text-lg text-slate-800">${formattedDate}</h4>
+                                <p class="text-sm text-slate-500">${dayName}</p>
+                            </div>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-medium">
+                                ${dayRecords.length} activities
+                            </span>
+                        </div>
+                        <div class="space-y-3">
+                            ${dayRecords.map(record => `
+                                <div class="history-card">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <h5 class="font-bold text-slate-800">${record.siteName}</h5>
+                                            <p class="text-sm text-slate-600 mt-1">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${record.role === 'Engineer' ? 'bg-purple-100 text-purple-800' : 'bg-emerald-100 text-emerald-800'}">
+                                                    ${record.role}
+                                                </span>
+                                                <span class="mx-2 text-slate-400">•</span>
+                                                <span class="text-slate-600">${record.workType}</span>
+                                            </p>
+                                            <p class="text-sm text-slate-500 mt-2">
+                                                <i class="fas fa-clock mr-1"></i> ${record.time || 'N/A'} 
+                                                <span class="mx-2">|</span>
+                                                <i class="fas fa-truck mr-1"></i> ${record.vehicleNeeded}
+                                                <span class="mx-2">|</span>
+                                                <i class="fas fa-user-tie mr-1"></i> Driver: ${record.driverName}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Render table view
+            document.getElementById('history-table-body').innerHTML = records.map(record => `
+                <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <td class="py-3 font-medium">${new Date(record.date).toLocaleDateString('en-GB')}</td>
+                    <td class="py-3">${record.siteName}</td>
+                    <td class="py-3">${record.workType}</td>
+                    <td class="py-3">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${record.role === 'Engineer' ? 'bg-purple-100 text-purple-800' : 'bg-emerald-100 text-emerald-800'}">
+                            ${record.role}
+                        </span>
+                    </td>
+                    <td class="py-3">${record.staffName}</td>
+                    <td class="py-3">${record.vehicleNeeded}</td>
+                    <td class="py-3">${record.driverName}</td>
+                    <td class="py-3 text-slate-600">${record.time || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function toggleView(view) {
+            const timelineView = document.getElementById('history-timeline-view');
+            const tableView = document.getElementById('history-table-view');
+            const btnTimeline = document.getElementById('btn-timeline');
+            const btnTable = document.getElementById('btn-table');
+            
+            if (view === 'timeline') {
+                timelineView.classList.remove('hidden');
+                tableView.classList.add('hidden');
+                btnTimeline.classList.add('bg-blue-500', 'text-white');
+                btnTimeline.classList.remove('bg-slate-200', 'text-slate-700');
+                btnTable.classList.remove('bg-blue-500', 'text-white');
+                btnTable.classList.add('bg-slate-200', 'text-slate-700');
+            } else {
+                timelineView.classList.add('hidden');
+                tableView.classList.remove('hidden');
+                btnTable.classList.add('bg-blue-500', 'text-white');
+                btnTable.classList.remove('bg-slate-200', 'text-slate-700');
+                btnTimeline.classList.remove('bg-blue-500', 'text-white');
+                btnTimeline.classList.add('bg-slate-200', 'text-slate-700');
+            }
+        }
+
+        function setDateRange(range) {
+            const today = new Date();
+            const fromInput = document.getElementById('history-from-date');
+            const toInput = document.getElementById('history-to-date');
+            
+            let fromDate = new Date();
+            let toDate = new Date();
+            
+            switch(range) {
+                case 'today':
+                    fromDate = today;
+                    toDate = today;
+                    break;
+                case 'week':
+                    fromDate.setDate(today.getDate() - today.getDay());
+                    break;
+                case 'month':
+                    fromDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    break;
+                case 'year':
+                    fromDate = new Date(today.getFullYear(), 0, 1);
+                    break;
+                case 'last30':
+                    fromDate.setDate(today.getDate() - 30);
+                    break;
+                case 'last90':
+                    fromDate.setDate(today.getDate() - 90);
+                    break;
+            }
+            
+            fromInput.value = fromDate.toISOString().split('T')[0];
+            toInput.value = toDate.toISOString().split('T')[0];
+            
+            applyHistoryFilters();
+        }
+
+        function clearFilters() {
+            document.getElementById('history-staff-filter').value = '';
+            document.getElementById('history-role-filter').value = '';
+            document.getElementById('history-from-date').value = '';
+            document.getElementById('history-to-date').value = '';
+            applyHistoryFilters();
+        }
+
+        async function exportFullHistory() {
+            const records = await getArchivedRecords({});
+            
+            if (records.length === 0) {
+                showToast('No history data to export');
+                return;
+            }
+            
+            let csv = 'Date,Site Name,Work Type,Staff Name,Role,Time,Vehicle Needed,Driver Required,Driver Name,Remarks\n';
+            records.forEach(r => {
+                csv += `${r.date},${r.siteName},${r.workType},${r.staffName},${r.role},${r.time || ''},${r.vehicleNeeded},${r.driverRequired},${r.driverName},"${r.remarks || ''}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `work-history-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            showToast(`Exported ${records.length} historical records`);
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('staffModal');
+            if (event.target === modal) {
+                closeStaffModal();
+            }
+        }
+    </script>
+</body>
+</html>
